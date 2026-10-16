@@ -448,13 +448,22 @@ async function addPageNumbers(blob, position) {
     parent.appendChild(run);
   }
 
-  function appendPageField(parent) {
-    appendFieldChar(parent, "begin");
-    appendInstruction(parent, " PAGE ");
-    appendFieldChar(parent, "separate");
-    appendCachedText(parent, "1");
-    appendFieldChar(parent, "end");
-  }
+  
+function appendPageField(parent) {
+  const doc = parent.ownerDocument;
+
+  const field = wElement(doc, "fldSimple");
+  field.setAttributeNS(W, "w:instr", " PAGE ");
+
+  const run = wElement(doc, "r");
+  const text = wElement(doc, "t");
+  text.textContent = "";
+
+  run.appendChild(text);
+  field.appendChild(run);
+  parent.appendChild(field);
+}
+
 
   // অনন্য relationship ID
   const relationships = Array.from(relRoot.children);
