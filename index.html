@@ -335,15 +335,16 @@ function createXmlElement(doc, namespace, name) {
 }
 
 async function addPageNumbers(blob, position) {
+async function addPageNumbers(blob, position) {
+  const skipPages = Math.max(
+    0,
+    parseInt(document.getElementById("skipPages").value, 10) || 0
+  );
+
   const zip = await JSZip.loadAsync(blob);
   const docPath = "word/document.xml";
   const relsPath = "word/_rels/document.xml.rels";
   const typesPath = "[Content_Types].xml";
-
-  if (!zip.file(docPath) || !zip.file(relsPath) ||
-      !zip.file(typesPath)) {
-    throw new Error("DOCX-এর প্রয়োজনীয় অংশ পাওয়া যায়নি।");
-  }
 
   const W =
     "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
@@ -351,26 +352,44 @@ async function addPageNumbers(blob, position) {
     "http://schemas.openxmlformats.org/package/2006/relationships";
   const CT =
     "http://schemas.openxmlformats.org/package/2006/content-types";
+  const REL =
+    "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+  if (
+    !zip.file(docPath) ||
+    !zip.file(relsPath) ||
+    !zip.file(typesPath)
+  ) {
+    throw new Error("DOCX-এর প্রয়োজনীয় অংশ পাওয়া যায়নি।");
+  }
 
   const documentXml = xmlParse(await zip.file(docPath).async("text"));
   const relsXml = xmlParse(await zip.file(relsPath).async("text"));
   const typesXml = xmlParse(await zip.file(typesPath).async("text"));
 
+  const docRoot = documentXml.documentElement;
   const relRoot = relsXml.documentElement;
   const typeRoot = typesXml.documentElement;
-  const docRoot = documentXml.documentElement;
+  const serializer = new XMLSerializer();
 
-  const relationships = Array.from(relRoot.children)
-    .filter(el => el.localName === "Relationship");
+  function el(doc, name) {
+    return doc.createElementNS(W, "w:" + name);
+  }
 
+  function setWAttr(node, name, value) {
+    node.setAttributeNS(W, "w:" + name, value);
+  }
+
+  // পুরোনো footer reference সরিয়ে নতুন footer তৈরি
+  const relationships = Array.from(relRoot.children);
   let relNumber = 1;
   let relId;
 
-  while (true) {
-    relId = "rIdPageFooter" + relNumber;
-    if (!relationships.some(el => el.getAttribute("Id") === relId)) break;
-    relNumber++;
-  }
+  do {
+    relId = "rIdPageFooter" + relNumber++;
+  } while (
+    relationships.some(item => item.getAttribute("Id") === relId)
+  );
 
   let footerNumber = 1;
   while (zip.file("word/footer" + footerNumber + ".xml")) {
@@ -383,99 +402,116 @@ async function addPageNumbers(blob, position) {
   const footerDoc = document.implementation.createDocument(W, "w:ftr");
   const footerRoot = footerDoc.documentElement;
   footerRoot.setAttribute("xmlns:w", W);
+  footerRoot.setAttribute("xmlns:r", REL);
 
-  const p = createXmlElement(footerDoc, W, "w:p");
-  const pPr = createXmlElement(footerDoc, W, "w:pPr");
-  const jc = createXmlElement(footerDoc, W, "w:jc");
-
-  jc.setAttributeNS(W, "w:val", position);
+  // প্রথম পৃষ্ঠাগুলো বাদ দিতে footer-এ PAGE field-এর পরিবর্তে
+  // IF PAGE > skipPages, PAGE, "" field ব্যবহার
+  const p = el(footerDoc, "p");
+  const pPr = el(footerDoc, "pPr");
+  const jc = el(footerDoc, "jc");
+  setWAttr(jc, "val", position);
   pPr.appendChild(jc);
   p.appendChild(pPr);
 
-  const r = createXmlElement(footerDoc, W, "w:r");
-  const begin = createXmlElement(footerDoc, W, "w:fldChar");
-  begin.setAttributeNS(W, "w:fldCharType", "begin");
+  function addFieldRun(parent, instruction) {
+    const run = el(footerDoc, "r");
+    const instr = el(footerDoc, "instrText");
+    instr.setAttributeNS(
+      "http://www.w3.org/XML/1998/namespace",
+      "xml:space",
+      "preserve"
+    );
+    instr.textContent = instruction;
+    run.appendChild(instr);
+    parent.appendChild(run);
+  }
 
-  const instrRun = createXmlElement(footerDoc, W, "w:r");
-  const instr = createXmlElement(footerDoc, W, "w:instrText");
-  instr.setAttribute("xml:space", "preserve");
-  instr.textContent = " PAGE ";
-  instrRun.appendChild(instr);
+  function addFieldChar(parent, type) {
+    const run = el(footerDoc, "r");
+    const field = el(footerDoc, "fldChar");
+    setWAttr(field, "fldCharType", type);
+    run.appendChild(field);
+    parent.appendChild(run);
+  }
 
-  const separateRun = createXmlElement(footerDoc, W, "w:r");
-  const separate = createXmlElement(footerDoc, W, "w:fldChar");
-  separate.setAttributeNS(W, "w:fldCharType", "separate");
-  separateRun.appendChild(separate);
+  addFieldChar(p, "begin");
+  addFieldRun(
+    p,
+    ' IF PAGE > ' + skipPages + ' " " "" '
+  );
+  addFieldChar(p, "separate");
 
-  const displayRun = createXmlElement(footerDoc, W, "w:r");
-  const displayText = createXmlElement(footerDoc, W, "w:t");
-  displayText.textContent = "1";
-  displayRun.appendChild(displayText);
+  const visibleRun = el(footerDoc, "r");
+  const visibleText = el(footerDoc, "t");
+  visibleText.textContent = "";
+  visibleRun.appendChild(visibleText);
+  p.appendChild(visibleRun);
 
-  const endRun = createXmlElement(footerDoc, W, "w:r");
-  const end = createXmlElement(footerDoc, W, "w:fldChar");
-  end.setAttributeNS(W, "w:fldCharType", "end");
-  endRun.appendChild(end);
+  addFieldChar(p, "end");
 
-  p.appendChild(r);
-  r.appendChild(begin);
-  p.append(instrRun, separateRun, displayRun, endRun);
+  // প্রকৃত PAGE field
+  addFieldChar(p, "begin");
+  addFieldRun(p, " PAGE ");
+  addFieldChar(p, "separate");
+
+  const pageRun = el(footerDoc, "r");
+  const pageText = el(footerDoc, "t");
+  pageText.textContent = "1";
+  pageRun.appendChild(pageText);
+  p.appendChild(pageRun);
+
+  addFieldChar(p, "end");
   footerRoot.appendChild(p);
-
-  const serializer = new XMLSerializer();
 
   zip.file(footerPath, serializer.serializeToString(footerDoc));
 
-  const rel = createXmlElement(relsXml, R, "Relationship");
+  const rel = relsXml.createElementNS(R, "Relationship");
   rel.setAttribute("Id", relId);
-  rel.setAttribute(
-    "Type",
-    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer"
-  );
+  rel.setAttribute("Type", REL + "/footer");
   rel.setAttribute("Target", footerFile);
   relRoot.appendChild(rel);
 
-  const overrideExists = Array.from(typeRoot.children).some(el =>
-    el.localName === "Override" &&
-    el.getAttribute("PartName") === "/" + footerPath
+  const override = typesXml.createElementNS(CT, "Override");
+  override.setAttribute("PartName", "/" + footerPath);
+  override.setAttribute(
+    "ContentType",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"
   );
-
-  if (!overrideExists) {
-    const override = createXmlElement(typesXml, CT, "Override");
-    override.setAttribute("PartName", "/" + footerPath);
-    override.setAttribute(
-      "ContentType",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"
-    );
-    typeRoot.appendChild(override);
-  }
+  typeRoot.appendChild(override);
 
   const sectPrs = findByLocalName(docRoot, "sectPr");
-
   if (!sectPrs.length) {
     throw new Error("ডকুমেন্টের পৃষ্ঠা সেটিংস পাওয়া যায়নি।");
   }
 
   for (const sectPr of sectPrs) {
-    const oldRefs = Array.from(sectPr.children).filter(el =>
-      el.localName === "footerReference" &&
-      el.getAttributeNS(
-        "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
-        "id"
-      )
+    const oldRefs = Array.from(sectPr.children).filter(
+      item => item.localName === "footerReference"
     );
+    oldRefs.forEach(item => sectPr.removeChild(item));
 
-    oldRefs.forEach(ref => sectPr.removeChild(ref));
-
-    const footerRef = createXmlElement(documentXml, W, "w:footerReference");
-    footerRef.setAttributeNS(W, "w:type", "default");
-    footerRef.setAttributeNS(
-      "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
-      "r:id",
-      relId
-    );
-
+    const footerRef = el(documentXml, "footerReference");
+    setWAttr(footerRef, "type", "default");
+    footerRef.setAttributeNS(REL, "r:id", relId);
     sectPr.insertBefore(footerRef, sectPr.firstChild);
+  }
+
+  // Word-কে field পুনরায় হিসাব করতে বলা
+  const settingsPath = "word/settings.xml";
+  if (zip.file(settingsPath)) {
+    const settingsXml = xmlParse(
+      await zip.file(settingsPath).async("text")
+    );
+    const root = settingsXml.documentElement;
+    let update = findByLocalName(root, "updateFields")[0];
+
+    if (!update) {
+      update = el(settingsXml, "updateFields");
+      root.appendChild(update);
+    }
+
+    setWAttr(update, "val", "true");
+    zip.file(settingsPath, serializer.serializeToString(settingsXml));
   }
 
   zip.file(docPath, serializer.serializeToString(documentXml));
