@@ -1,696 +1,535 @@
-<!DOCTYPE html>
-<html lang="bn">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DOCX Merger</title>
+<!DOCTYPE html>  <html lang="bn">  
+<head>  
+<meta charset="UTF-8">  
+<meta name="viewport" content="width=device-width, initial-scale=1">  
+<title>DOCX Merger</title>  <style>  
+*{box-sizing:border-box}  
+body{  
+  margin:0;  
+  font-family:Arial,"Noto Sans Bengali",sans-serif;  
+  background:#f3f4f6;  
+  color:#202124;  
+  line-height:1.6;  
+}  
+header{  
+  background:#243447;  
+  color:white;  
+  padding:22px 16px;  
+  text-align:center;  
+}  
+header h1{margin:0;font-size:24px}  
+header p{margin:6px 0 0;font-size:14px}  
+main{max-width:760px;margin:20px auto;padding:0 12px}  
+.card{  
+  background:white;  
+  border:1px solid #e0e3e7;  
+  border-radius:12px;  
+  padding:18px;  
+  margin-bottom:16px;  
+}  
+h2{font-size:18px;margin:0 0 12px}  
+.note{font-size:13px;color:#606770}  
+input[type=file]{  
+  width:100%;  
+  padding:12px;  
+  border:1px dashed #8b96a5;  
+  border-radius:8px;  
+  background:#fafafa;  
+}  
+button,select,input{font:inherit}  
+button{  
+  cursor:pointer;  
+  border:0;  
+  border-radius:7px;  
+  padding:9px 13px;  
+}  
+button:disabled{opacity:.45;cursor:default}  
+.primary{background:#1769aa;color:white}  
+.secondary{background:#e8edf2;color:#253447}  
+.danger{background:#fce8e6;color:#a12622}  
+.file-row{  
+  display:flex;  
+  align-items:center;  
+  gap:8px;  
+  padding:10px 0;  
+  border-bottom:1px solid #eee;  
+}  
+.file-row:last-child{border-bottom:0}  
+.file-name{flex:1;min-width:0;overflow-wrap:anywhere}  
+.file-size{font-size:12px;color:#667085}  
+.file-actions{display:flex;gap:4px}  
+.file-actions button{padding:7px 9px}  
+label{display:block;margin:10px 0 5px}  
+select,input[type=text]{  
+  width:100%;  
+  padding:10px;  
+  border:1px solid #cbd2da;  
+  border-radius:7px;  
+  background:white;  
+}  
+.option{display:flex;gap:9px;align-items:flex-start;margin:12px 0}  
+.option input{margin-top:6px}  
+#status{white-space:pre-wrap;font-size:14px;margin-top:12px}  
+#downloadLink{  
+  display:none;  
+  margin-top:14px;  
+  padding:12px;  
+  text-align:center;  
+  background:#e2f4e8;  
+  color:#146c35;  
+  text-decoration:none;  
+  border-radius:8px;  
+  font-weight:bold;  
+}  
+footer{text-align:center;color:#687386;font-size:12px;padding:20px}  
+</style>  </head>  <body>  
+<header>  
+  <h1>DOCX Merger</h1>  
+  <p>একাধিক Word ফাইল একত্র করুন সহজেই</p>  
+</header>  <main>  
+  <section class="card">  
+    <h2>১. Word ফাইল নির্বাচন করুন</h2>  
+    <input id="fileInput" type="file"  
+      accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"  
+      multiple>  
+    <p class="note">  
+      শুধু DOCX ফাইল নির্বাচন করুন। ফাইলের ক্রম নিচের তালিকা থেকে সাজাতে পারবেন।  
+      আপনার ফাইলগুলো ব্রাউজারেই প্রসেস করা হবে।  
+    </p>  
+  </section>    <section class="card">  
+    <h2>২. ফাইলের সিরিয়াল</h2>  
+    <div id="fileList">  
+      <p class="note">এখনো কোনো ফাইল নির্বাচন করা হয়নি।</p>  
+    </div>  
+    <button id="clearBtn" class="secondary" type="button">  
+      সব ফাইল সরান  
+    </button>  
+  </section>    <section class="card">  
+    <h2>৩. ডকুমেন্ট সেটিংস</h2>  <div class="option">  
+  <input id="pageBreaks" type="checkbox" checked>  
+  <div>  
+    <label for="pageBreaks" style="margin:0">  
+      প্রতিটি ডকুমেন্টের পরে পেজ ব্রেক  
+    </label>  
+    <div class="note">  
+      পরবর্তী ফাইল নতুন পৃষ্ঠা থেকে শুরু হবে।  
+    </div>  
+  </div>  
+</div>  
 
-<style>
-*{box-sizing:border-box}
-body{
-  margin:0;
-  font-family:Arial,"Noto Sans Bengali",sans-serif;
-  background:#f3f4f6;
-  color:#202124;
-  line-height:1.6;
-}
-header{
-  background:#243447;
-  color:white;
-  padding:22px 16px;
-  text-align:center;
-}
-header h1{margin:0;font-size:24px}
-header p{margin:6px 0 0;font-size:14px}
-main{max-width:760px;margin:20px auto;padding:0 12px}
-.card{
-  background:white;
-  border:1px solid #e0e3e7;
-  border-radius:12px;
-  padding:18px;
-  margin-bottom:16px;
-}
-h2{font-size:18px;margin:0 0 12px}
-.note{font-size:13px;color:#606770}
-input[type=file]{
-  width:100%;
-  padding:12px;
-  border:1px dashed #8b96a5;
-  border-radius:8px;
-  background:#fafafa;
-}
-button,select,input{font:inherit}
-button{
-  cursor:pointer;
-  border:0;
-  border-radius:7px;
-  padding:9px 13px;
-}
-button:disabled{opacity:.45;cursor:default}
-.primary{background:#1769aa;color:white}
-.secondary{background:#e8edf2;color:#253447}
-.danger{background:#fce8e6;color:#a12622}
-.file-row{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  padding:10px 0;
-  border-bottom:1px solid #eee;
-}
-.file-row:last-child{border-bottom:0}
-.file-name{flex:1;min-width:0;overflow-wrap:anywhere}
-.file-size{font-size:12px;color:#667085}
-.file-actions{display:flex;gap:4px}
-.file-actions button{padding:7px 9px}
-label{display:block;margin:10px 0 5px}
-select,input[type=text],input[type=number]{
-  width:100%;
-  padding:10px;
-  border:1px solid #cbd2da;
-  border-radius:7px;
-  background:white;
-}
-.option{
-  display:flex;
-  gap:9px;
-  align-items:flex-start;
-  margin:12px 0;
-}
-.option input{margin-top:6px}
-#status{white-space:pre-wrap;font-size:14px;margin-top:12px}
-#downloadLink{
-  display:none;
-  margin-top:14px;
-  padding:12px;
-  text-align:center;
-  background:#e2f4e8;
-  color:#146c35;
-  text-decoration:none;
-  border-radius:8px;
-  font-weight:bold;
-}
-footer{text-align:center;color:#687386;font-size:12px;padding:20px}
-</style>
-</head>
+<div class="option">  
+  <input id="addPageNumbers" type="checkbox">  
+  <div>  
+    <label for="addPageNumbers" style="margin:0">  
+      পৃষ্ঠা নম্বর যোগ করুন  
+    </label>  
+    <div class="note">  
+      Word-এর স্বয়ংক্রিয় পৃষ্ঠা নম্বর ব্যবহার করা হবে।  
+    </div>  
+  </div>  
+</div>  
 
-<body>
-<header>
-  <h1>DOCX Merger</h1>
-  <p>একাধিক Word ফাইল একত্র করুন সহজেই</p>
-</header>
+<label for="pagePosition">পৃষ্ঠা নম্বরের অবস্থান</label>  
+<select id="pagePosition">  
+  <option value="center">পাতার নিচে মাঝখানে</option>  
+  <option value="right">পাতার নিচে ডান পাশে</option>  
+  <option value="left">পাতার নিচে বাম পাশে</option>  
+</select>  
 
-<main>
-  <section class="card">
-    <h2>১. Word ফাইল নির্বাচন করুন</h2>
-    <input id="fileInput" type="file"
-      accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      multiple>
-    <p class="note">
-      শুধু DOCX ফাইল নির্বাচন করুন। ফাইলের ক্রম নিচের তালিকা থেকে সাজাতে পারবেন।
-      ফাইলগুলো ব্রাউজারেই প্রসেস করা হবে।
-    </p>
-  </section>
+<label for="outputName">ডাউনলোড ফাইলের নাম</label>  
+<input id="outputName" type="text"  
+  value="সংযুক্ত-ডকুমেন্ট" maxlength="100">
 
-  <section class="card">
-    <h2>২. ফাইলের সিরিয়াল</h2>
-    <div id="fileList">
-      <p class="note">এখনো কোনো ফাইল নির্বাচন করা হয়নি।</p>
-    </div>
-    <button id="clearBtn" class="secondary" type="button">
-      সব ফাইল সরান
-    </button>
-  </section>
-
-  <section class="card">
-    <h2>৩. ডকুমেন্ট সেটিংস</h2>
-
-    <div class="option">
-      <input id="pageBreaks" type="checkbox" checked>
-      <div>
-        <label for="pageBreaks" style="margin:0">
-          প্রতিটি ডকুমেন্টের পরে পেজ ব্রেক
-        </label>
-        <div class="note">
-          পরবর্তী ফাইল নতুন পৃষ্ঠা থেকে শুরু হবে।
-        </div>
-      </div>
-    </div>
-
-    <div class="option">
-      <input id="addPageNumbers" type="checkbox">
-      <div>
-        <label for="addPageNumbers" style="margin:0">
-          পৃষ্ঠা নম্বর যোগ করুন
-        </label>
-        <div class="note">
-          Word-এর স্বয়ংক্রিয় পৃষ্ঠা নম্বর ব্যবহার করা হবে।
-        </div>
-      </div>
-    </div>
-
-    <label for="skipPages">প্রথম কতটি পৃষ্ঠায় নম্বর থাকবে না?</label>
-    <input id="skipPages" type="number"
-      min="0" max="500" step="1" value="0"
-      placeholder="যেমন: 3">
-    <p class="note">
-      যেমন ৩ লিখলে প্রথম ৩টি পৃষ্ঠায় নম্বর দেখানোর শর্ত থাকবে না।
-      চতুর্থ পৃষ্ঠায় ৪ দেখানোর জন্য Word-এ ফিল্ড আপডেট হওয়া প্রয়োজন।
-    </p>
-
-    <label for="pagePosition">পৃষ্ঠা নম্বরের অবস্থান</label>
-    <select id="pagePosition">
-      <option value="center">পাতার নিচে মাঝখানে</option>
-      <option value="right">পাতার নিচে ডান পাশে</option>
-      <option value="left">পাতার নিচে বাম পাশে</option>
-    </select>
-
-    <label for="outputName">ডাউনলোড ফাইলের নাম</label>
-    <input id="outputName" type="text"
-      value="সংযুক্ত-ডকুমেন্ট" maxlength="100">
-  </section>
-
-  <section class="card">
-    <h2>৪. সংযুক্ত Word ফাইল তৈরি করুন</h2>
-    <button id="mergeBtn" class="primary" type="button"
-      style="width:100%">
-      DOCX ফাইল একত্র করুন
-    </button>
-    <div id="status" role="status" aria-live="polite"></div>
-    <a id="downloadLink" href="#" download>
-      সংযুক্ত Word ফাইল ডাউনলোড করুন
-    </a>
-  </section>
-
-  <section class="card">
-    <h2>গুরুত্বপূর্ণ তথ্য</h2>
-    <p class="note">
-      বাংলা ও আরবি ফন্ট, বোল্ড, শিরোনাম, তালিকা এবং অন্যান্য ফরম্যাটিং
-      যথাসম্ভব সংরক্ষণের চেষ্টা করা হবে। প্রতিটি Word ফিচার অক্ষুণ্ণ
-      থাকার নিশ্চয়তা নেই।
-    </p>
-    <p class="note">
-      প্রথম কয়েকটি পৃষ্ঠায় নম্বর লুকানোর IF field সব DOCX অ্যাপ বা PDF
-      রূপান্তরকারীতে একইভাবে কাজ নাও করতে পারে। বড় বই ব্যবহারের আগে
-      ছোট একটি ফাইল দিয়ে পরীক্ষা করুন।
-    </p>
-  </section>
-</main>
-
-<footer>DOCX Merger · আপনার ফাইল ব্রাউজারেই প্রসেস হয়</footer>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://unpkg.com/@jonathanhotono/browser-docx-merger/dist/index.global.js"></script>
-
-<script>
-"use strict";
-
-const fileInput = document.getElementById("fileInput");
-const fileList = document.getElementById("fileList");
-const clearBtn = document.getElementById("clearBtn");
-const mergeBtn = document.getElementById("mergeBtn");
-const statusBox = document.getElementById("status");
-const downloadLink = document.getElementById("downloadLink");
-
-let selectedFiles = [];
-let downloadUrl = null;
-
-function showStatus(message) {
-  statusBox.textContent = message;
-}
-
-function formatSize(bytes) {
-  if (bytes < 1024) return bytes + " B";
-  if (bytes < 1024 * 1024) {
-    return (bytes / 1024).toFixed(1) + " KB";
-  }
-  return (bytes / (1024 * 1024)).toFixed(2) + " MB";
-}
-
-function renderFiles() {
-  fileList.replaceChildren();
-
-  if (selectedFiles.length === 0) {
-    const p = document.createElement("p");
-    p.className = "note";
-    p.textContent = "এখনো কোনো ফাইল নির্বাচন করা হয়নি।";
-    fileList.appendChild(p);
-    return;
-  }
-
-  selectedFiles.forEach((file, index) => {
-    const row = document.createElement("div");
-    row.className = "file-row";
-
-    const name = document.createElement("div");
-    name.className = "file-name";
-
-    const title = document.createElement("div");
-    title.textContent = (index + 1) + ". " + file.name;
-
-    const size = document.createElement("div");
-    size.className = "file-size";
-    size.textContent = formatSize(file.size);
-
-    name.append(title, size);
-
-    const actions = document.createElement("div");
-    actions.className = "file-actions";
-
-    const up = document.createElement("button");
-    up.className = "secondary";
-    up.textContent = "↑";
-    up.title = "এক ধাপ ওপরে";
-    up.setAttribute("aria-label", file.name + " ওপরে নিন");
-    up.disabled = index === 0;
-    up.onclick = () => moveFile(index, -1);
-
-    const down = document.createElement("button");
-    down.className = "secondary";
-    down.textContent = "↓";
-    down.title = "এক ধাপ নিচে";
-    down.setAttribute("aria-label", file.name + " নিচে নিন");
-    down.disabled = index === selectedFiles.length - 1;
-    down.onclick = () => moveFile(index, 1);
-
-    const remove = document.createElement("button");
-    remove.className = "danger";
-    remove.textContent = "×";
-    remove.title = "ফাইল সরান";
-    remove.setAttribute("aria-label", file.name + " সরান");
-    remove.onclick = () => {
-      selectedFiles.splice(index, 1);
-      renderFiles();
-    };
-
-    actions.append(up, down, remove);
-    row.append(name, actions);
-    fileList.appendChild(row);
-  });
-}
-
-function moveFile(index, direction) {
-  const target = index + direction;
-  if (target < 0 || target >= selectedFiles.length) return;
-
-  [selectedFiles[index], selectedFiles[target]] =
-    [selectedFiles[target], selectedFiles[index]];
-
-  renderFiles();
-}
-
-fileInput.addEventListener("change", () => {
-  const incoming = Array.from(fileInput.files || []);
-  let added = 0;
-
-  for (const file of incoming) {
-    if (!file.name.toLowerCase().endsWith(".docx")) continue;
-
-    const exists = selectedFiles.some(
-      f => f.name === file.name &&
-           f.size === file.size &&
-           f.lastModified === file.lastModified
-    );
-
-    if (!exists) {
-      selectedFiles.push(file);
-      added++;
-    }
-  }
-
-  renderFiles();
-  fileInput.value = "";
-
-  if (added) showStatus(added + "টি ফাইল যোগ করা হয়েছে।");
-});
-
-clearBtn.addEventListener("click", () => {
-  selectedFiles = [];
-  renderFiles();
-  showStatus("সব ফাইল সরানো হয়েছে।");
-  downloadLink.style.display = "none";
-
-  if (downloadUrl) {
-    URL.revokeObjectURL(downloadUrl);
-    downloadUrl = null;
-  }
-});
-
-function xmlParse(text) {
-  const xml = new DOMParser().parseFromString(
-    text,
-    "application/xml"
-  );
-
-  if (xml.getElementsByTagName("parsererror").length) {
-    throw new Error("DOCX-এর XML অংশ পড়া যায়নি।");
-  }
-  return xml;
-}
-
-function findByLocalName(parent, name) {
-  return Array.from(parent.getElementsByTagNameNS("*", name));
-}
-
-function createXmlElement(doc, namespace, name) {
-  return doc.createElementNS(namespace, name);
-}
-
-async function addPageNumbers(blob, position) {
-  const skipInput = document.getElementById("skipPages");
-  const rawSkip = Number(skipInput.value);
-
-  if (
-    !Number.isInteger(rawSkip) ||
-    rawSkip < 0 ||
-    rawSkip > 500
-  ) {
-    throw new Error(
-      "বাদ দেওয়ার পৃষ্ঠার সংখ্যা ০ থেকে ৫০০-এর মধ্যে পূর্ণসংখ্যা দিন।"
-    );
-  }
-
-  const skipPages = rawSkip;
-  const zip = await JSZip.loadAsync(blob);
-
-  const docPath = "word/document.xml";
-  const relsPath = "word/_rels/document.xml.rels";
-  const typesPath = "[Content_Types].xml";
-  const settingsPath = "word/settings.xml";
-
-  if (
-    !zip.file(docPath) ||
-    !zip.file(relsPath) ||
-    !zip.file(typesPath)
-  ) {
-    throw new Error("DOCX-এর প্রয়োজনীয় অংশ পাওয়া যায়নি।");
-  }
-
-  const W =
-    "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
-  const R =
-    "http://schemas.openxmlformats.org/package/2006/relationships";
-  const CT =
-    "http://schemas.openxmlformats.org/package/2006/content-types";
-  const REL =
-    "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-
-  const documentXml = xmlParse(
-    await zip.file(docPath).async("text")
-  );
-  const relsXml = xmlParse(
-    await zip.file(relsPath).async("text")
-  );
-  const typesXml = xmlParse(
-    await zip.file(typesPath).async("text")
-  );
-
-  const docRoot = documentXml.documentElement;
-  const relRoot = relsXml.documentElement;
-  const typeRoot = typesXml.documentElement;
-  const serializer = new XMLSerializer();
-
-  function wElement(doc, name) {
-    return doc.createElementNS(W, "w:" + name);
-  }
-
-  function setWAttr(node, name, value) {
-    node.setAttributeNS(W, "w:" + name, String(value));
-  }
-
-  function appendFieldChar(parent, type) {
-    const run = wElement(parent.ownerDocument, "r");
-    const field = wElement(parent.ownerDocument, "fldChar");
-    setWAttr(field, "fldCharType", type);
-    run.appendChild(field);
-    parent.appendChild(run);
-  }
-
-  function appendInstruction(parent, instruction) {
-    const run = wElement(parent.ownerDocument, "r");
-    const instr = wElement(parent.ownerDocument, "instrText");
-
-    instr.setAttributeNS(
-      "http://www.w3.org/XML/1998/namespace",
-      "xml:space",
-      "preserve"
-    );
-
-    instr.textContent = instruction;
-    run.appendChild(instr);
-    parent.appendChild(run);
-  }
-
-  function appendCachedText(parent, value) {
-    const run = wElement(parent.ownerDocument, "r");
-    const text = wElement(parent.ownerDocument, "t");
-    text.textContent = value;
-    run.appendChild(text);
-    parent.appendChild(run);
-  }
-
+  </section>    <section class="card">  
+    <h2>৪. সংযুক্ত Word ফাইল তৈরি করুন</h2>  
+    <button id="mergeBtn" class="primary" type="button" style="width:100%">  
+      DOCX ফাইল একত্র করুন  
+    </button>  
+    <div id="status" role="status" aria-live="polite"></div>  
+    <a id="downloadLink" href="#" download>  
+      সংযুক্ত Word ফাইল ডাউনলোড করুন  
+    </a>  
+  </section>    <section class="card">  
+    <h2>গুরুত্বপূর্ণ তথ্য</h2>  
+    <p class="note">  
+      বাংলা ও আরবি ফন্ট, বোল্ড, শিরোনাম, তালিকা এবং অন্যান্য ফরম্যাটিং  
+      যথাসম্ভব সংরক্ষণের জন্য DOCX মার্জার লাইব্রেরি ব্যবহার করা হচ্ছে।  
+      তবে প্রতিটি Word ফিচার অক্ষুণ্ণ থাকার নিশ্চয়তা নেই।  
+    </p>  
+    <p class="note">  
+      পৃষ্ঠা নম্বর Word-এ খুললে প্রদর্শিত হবে। প্রয়োজন হলে Word-এর  
+      Print Layout-এ গিয়ে ফলাফল পরীক্ষা করুন।  
+    </p>  
+  </section>  
+</main>  <footer>DOCX Merger · আপনার ফাইল ব্রাউজারেই প্রসেস হয়</footer>  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>  <script src="https://unpkg.com/@jonathanhotono/browser-docx-merger/dist/index.global.js"></script>  <script>  
+"use strict";  
   
-function appendPageField(parent) {
-  const doc = parent.ownerDocument;
-
-  const field = wElement(doc, "fldSimple");
-  field.setAttributeNS(W, "w:instr", " PAGE ");
-
-  const run = wElement(doc, "r");
-  const text = wElement(doc, "t");
-  text.textContent = "";
-
-  run.appendChild(text);
-  field.appendChild(run);
-  parent.appendChild(field);
-}
-
-
-  // অনন্য relationship ID
-  const relationships = Array.from(relRoot.children);
-  let relNumber = 1;
-  let relId;
-
-  do {
-    relId = "rIdPageFooter" + relNumber++;
-  } while (
-    relationships.some(item => item.getAttribute("Id") === relId)
-  );
-
-  // অনন্য footer ফাইল
-  let footerNumber = 1;
-  while (zip.file("word/footer" + footerNumber + ".xml")) {
-    footerNumber++;
-  }
-
-  const footerFile = "footer" + footerNumber + ".xml";
-  const footerPath = "word/" + footerFile;
-
-  const footerDoc = document.implementation.createDocument(
-    W,
-    "w:ftr"
-  );
-  const footerRoot = footerDoc.documentElement;
-  footerRoot.setAttribute("xmlns:w", W);
-
-  const p = wElement(footerDoc, "p");
-  const pPr = wElement(footerDoc, "pPr");
-  const jc = wElement(footerDoc, "jc");
-  setWAttr(jc, "val", position);
-  pPr.appendChild(jc);
-  p.appendChild(pPr);
-
-  if (skipPages === 0) {
-    // সাধারণ PAGE field
-    appendPageField(p);
-  } else {
-    /*
-      Word field:
-      IF { PAGE } > N "{ PAGE }" ""
-
-      প্রথম PAGE field শর্ত পরীক্ষা করে।
-      দ্বিতীয় PAGE field সত্য হলে প্রকৃত পৃষ্ঠা নম্বর দেখায়।
-    */
-    appendFieldChar(p, "begin");
-    appendInstruction(p, " IF ");
-
-    // শর্তের প্রথম PAGE field
-    appendPageField(p);
-
-    appendInstruction(p, " > " + skipPages + ' "');
-
-    // শর্ত সত্য হলে প্রদর্শিত PAGE field
-    appendPageField(p);
-
-    appendInstruction(p, '" "" ');
-    appendFieldChar(p, "separate");
-
-    // Cached result; Word ফিল্ড আপডেট করলে এটি বদলাবে
-    appendCachedText(p, "");
-    appendFieldChar(p, "end");
-  }
-
-  footerRoot.appendChild(p);
-  zip.file(footerPath, serializer.serializeToString(footerDoc));
-
-  // Footer relationship
-  const rel = relsXml.createElementNS(R, "Relationship");
-  rel.setAttribute("Id", relId);
-  rel.setAttribute("Type", REL + "/footer");
-  rel.setAttribute("Target", footerFile);
-  relRoot.appendChild(rel);
-
-  // Content type override
-  const overrideExists = Array.from(typeRoot.children).some(
-    item =>
-      item.localName === "Override" &&
-      item.getAttribute("PartName") === "/" + footerPath
-  );
-
-  if (!overrideExists) {
-    const override = typesXml.createElementNS(CT, "Override");
-    override.setAttribute("PartName", "/" + footerPath);
-    override.setAttribute(
-      "ContentType",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"
-    );
-    typeRoot.appendChild(override);
-  }
-
-  // প্রতিটি section-এ নতুন footer reference
-  const sectPrs = findByLocalName(docRoot, "sectPr");
-
-  if (!sectPrs.length) {
-    throw new Error("ডকুমেন্টের পৃষ্ঠা সেটিংস পাওয়া যায়নি।");
-  }
-
-  for (const sectPr of sectPrs) {
-    const oldRefs = Array.from(sectPr.children).filter(
-      item => item.localName === "footerReference"
-    );
-    oldRefs.forEach(item => sectPr.removeChild(item));
-
-    const footerRef = wElement(documentXml, "footerReference");
-    setWAttr(footerRef, "type", "default");
-    footerRef.setAttributeNS(REL, "r:id", relId);
-    sectPr.insertBefore(footerRef, sectPr.firstChild);
-  }
-
-  // Word-কে field আপডেট করার অনুরোধ
-  if (zip.file(settingsPath)) {
-    const settingsXml = xmlParse(
-      await zip.file(settingsPath).async("text")
-    );
-    const settingsRoot = settingsXml.documentElement;
-
-    let updateFields = findByLocalName(
-      settingsRoot,
-      "updateFields"
-    )[0];
-
-    if (!updateFields) {
-      updateFields = wElement(settingsXml, "updateFields");
-      settingsRoot.appendChild(updateFields);
-    }
-
-    setWAttr(updateFields, "val", "true");
-
-    zip.file(
-      settingsPath,
-      serializer.serializeToString(settingsXml)
-    );
-  }
-
-  zip.file(docPath, serializer.serializeToString(documentXml));
-  zip.file(relsPath, serializer.serializeToString(relsXml));
-  zip.file(typesPath, serializer.serializeToString(typesXml));
-
-  return await zip.generateAsync({
-    type: "blob",
-    mimeType:
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-  });
-}
-
-mergeBtn.addEventListener("click", async () => {
-  downloadLink.style.display = "none";
-
-  if (selectedFiles.length < 2) {
-    showStatus("কমপক্ষে ২টি DOCX ফাইল নির্বাচন করুন।");
-    return;
-  }
-
-  if (
-    !window.DocxMerger ||
-    typeof window.DocxMerger.mergeDocxFromFiles !== "function"
-  ) {
-    showStatus(
-      "DOCX লাইব্রেরি লোড হয়নি। ইন্টারনেট সংযোগ পরীক্ষা করে পৃষ্ঠা রিফ্রেশ করুন।"
-    );
-    return;
-  }
-
-  if (typeof JSZip === "undefined") {
-    showStatus(
-      "ZIP লাইব্রেরি লোড হয়নি। ইন্টারনেট সংযোগ পরীক্ষা করুন।"
-    );
-    return;
-  }
-
-  mergeBtn.disabled = true;
-  showStatus(
-    "ফাইলগুলো একত্র করা হচ্ছে। ফাইল বড় হলে কিছুটা সময় লাগতে পারে।"
-  );
-
-  try {
-    const files = selectedFiles.slice();
-
-    let result = await window.DocxMerger.mergeDocxFromFiles(files, {
-      insertEnd: true,
-      pageBreaks: document.getElementById("pageBreaks").checked,
-      mergeStyles: true,
-      mergeNumbering: true,
-      mergeFootnotes: true,
-      onLog: message => showStatus(String(message))
-    });
-
-    if (document.getElementById("addPageNumbers").checked) {
-      showStatus("পৃষ্ঠা নম্বর যোগ করা হচ্ছে...");
-
-      const position =
-        document.getElementById("pagePosition").value;
-
-      result = await addPageNumbers(result, position);
-    }
-
-    if (downloadUrl) URL.revokeObjectURL(downloadUrl);
-    downloadUrl = URL.createObjectURL(result);
-
-    let filename =
-      document.getElementById("outputName").value.trim();
-
-    filename = filename.replace(/[\\/:*?"<>|]/g, "_");
-    if (!filename) filename = "সংযুক্ত-ডকুমেন্ট";
-
-    downloadLink.href = downloadUrl;
-    downloadLink.download = filename + ".docx";
-    downloadLink.style.display = "block";
-
-    showStatus(
-      "ফাইল তৈরি হয়েছে। ডাউনলোড করুন এবং Word-এ পৃষ্ঠা নম্বর পরীক্ষা করুন।"
-    );
-  } catch (error) {
-    console.error(error);
-
-    showStatus(
-      "ফাইল তৈরি করা যায়নি। কোনো DOCX ফাইল ক্ষতিগ্রস্ত বা অসামঞ্জস্যপূর্ণ হতে পারে।\n" +
-      (error && error.message ? error.message : "অজানা সমস্যা")
-    );
-  } finally {
-    mergeBtn.disabled = false;
-  }
-});
-
-renderFiles();
-</script>
-</body>
+const fileInput = document.getElementById("fileInput");  
+const fileList = document.getElementById("fileList");  
+const clearBtn = document.getElementById("clearBtn");  
+const mergeBtn = document.getElementById("mergeBtn");  
+const statusBox = document.getElementById("status");  
+const downloadLink = document.getElementById("downloadLink");  
+  
+let selectedFiles = [];  
+let downloadUrl = null;  
+  
+function showStatus(message) {  
+  statusBox.textContent = message;  
+}  
+  
+function formatSize(bytes) {  
+  if (bytes < 1024) return bytes + " B";  
+  if (bytes < 1024 * 1024)  
+    return (bytes / 1024).toFixed(1) + " KB";  
+  return (bytes / (1024 * 1024)).toFixed(2) + " MB";  
+}  
+  
+function renderFiles() {  
+  fileList.replaceChildren();  
+  
+  if (selectedFiles.length === 0) {  
+    const p = document.createElement("p");  
+    p.className = "note";  
+    p.textContent = "এখনো কোনো ফাইল নির্বাচন করা হয়নি।";  
+    fileList.appendChild(p);  
+    return;  
+  }  
+  
+  selectedFiles.forEach((file, index) => {  
+    const row = document.createElement("div");  
+    row.className = "file-row";  
+  
+    const name = document.createElement("div");  
+    name.className = "file-name";  
+  
+    const title = document.createElement("div");  
+    title.textContent = (index + 1) + ". " + file.name;  
+  
+    const size = document.createElement("div");  
+    size.className = "file-size";  
+    size.textContent = formatSize(file.size);  
+  
+    name.append(title, size);  
+  
+    const actions = document.createElement("div");  
+    actions.className = "file-actions";  
+  
+    const up = document.createElement("button");  
+    up.className = "secondary";  
+    up.textContent = "↑";  
+    up.title = "এক ধাপ ওপরে";  
+    up.setAttribute("aria-label", file.name + " ওপরে নিন");  
+    up.disabled = index === 0;  
+    up.onclick = () => moveFile(index, -1);  
+  
+    const down = document.createElement("button");  
+    down.className = "secondary";  
+    down.textContent = "↓";  
+    down.title = "এক ধাপ নিচে";  
+    down.setAttribute("aria-label", file.name + " নিচে নিন");  
+    down.disabled = index === selectedFiles.length - 1;  
+    down.onclick = () => moveFile(index, 1);  
+  
+    const remove = document.createElement("button");  
+    remove.className = "danger";  
+    remove.textContent = "×";  
+    remove.title = "ফাইল সরান";  
+    remove.setAttribute("aria-label", file.name + " সরান");  
+    remove.onclick = () => {  
+      selectedFiles.splice(index, 1);  
+      renderFiles();  
+    };  
+  
+    actions.append(up, down, remove);  
+    row.append(name, actions);  
+    fileList.appendChild(row);  
+  });  
+}  
+  
+function moveFile(index, direction) {  
+  const target = index + direction;  
+  if (target < 0 || target >= selectedFiles.length) return;  
+  
+  [selectedFiles[index], selectedFiles[target]] =  
+    [selectedFiles[target], selectedFiles[index]];  
+  
+  renderFiles();  
+}  
+  
+fileInput.addEventListener("change", () => {  
+  const incoming = Array.from(fileInput.files || []);  
+  let added = 0;  
+  
+  for (const file of incoming) {  
+    if (!file.name.toLowerCase().endsWith(".docx")) continue;  
+  
+    const exists = selectedFiles.some(  
+      f => f.name === file.name &&  
+           f.size === file.size &&  
+           f.lastModified === file.lastModified  
+    );  
+  
+    if (!exists) {  
+      selectedFiles.push(file);  
+      added++;  
+    }  
+  }  
+  
+  renderFiles();  
+  fileInput.value = "";  
+  
+  if (added) {  
+    showStatus(added + "টি ফাইল যোগ করা হয়েছে।");  
+  }  
+});  
+  
+clearBtn.addEventListener("click", () => {  
+  selectedFiles = [];  
+  renderFiles();  
+  showStatus("সব ফাইল সরানো হয়েছে।");  
+  downloadLink.style.display = "none";  
+});  
+  
+function xmlParse(text) {  
+  const xml = new DOMParser().parseFromString(text, "application/xml");  
+  if (xml.getElementsByTagName("parsererror").length) {  
+    throw new Error("DOCX-এর XML অংশ পড়া যায়নি।");  
+  }  
+  return xml;  
+}  
+  
+function findByLocalName(parent, name) {  
+  return Array.from(parent.getElementsByTagNameNS("*", name));  
+}  
+  
+function createXmlElement(doc, namespace, name) {  
+  return doc.createElementNS(namespace, name);  
+}  
+  
+async function addPageNumbers(blob, position) {  
+  const zip = await JSZip.loadAsync(blob);  
+  const docPath = "word/document.xml";  
+  const relsPath = "word/_rels/document.xml.rels";  
+  const typesPath = "[Content_Types].xml";  
+  
+  if (!zip.file(docPath) || !zip.file(relsPath) ||  
+      !zip.file(typesPath)) {  
+    throw new Error("DOCX-এর প্রয়োজনীয় অংশ পাওয়া যায়নি।");  
+  }  
+  
+  const W =  
+    "http://schemas.openxmlformats.org/wordprocessingml/2006/main";  
+  const R =  
+    "http://schemas.openxmlformats.org/package/2006/relationships";  
+  const CT =  
+    "http://schemas.openxmlformats.org/package/2006/content-types";  
+  
+  const documentXml = xmlParse(await zip.file(docPath).async("text"));  
+  const relsXml = xmlParse(await zip.file(relsPath).async("text"));  
+  const typesXml = xmlParse(await zip.file(typesPath).async("text"));  
+  
+  const relRoot = relsXml.documentElement;  
+  const typeRoot = typesXml.documentElement;  
+  const docRoot = documentXml.documentElement;  
+  
+  const relationships = Array.from(relRoot.children)  
+    .filter(el => el.localName === "Relationship");  
+  
+  let relNumber = 1;  
+  let relId;  
+  
+  while (true) {  
+    relId = "rIdPageFooter" + relNumber;  
+    if (!relationships.some(el => el.getAttribute("Id") === relId)) break;  
+    relNumber++;  
+  }  
+  
+  let footerNumber = 1;  
+  while (zip.file("word/footer" + footerNumber + ".xml")) {  
+    footerNumber++;  
+  }  
+  
+  const footerFile = "footer" + footerNumber + ".xml";  
+  const footerPath = "word/" + footerFile;  
+  
+  const footerDoc = document.implementation.createDocument(W, "w:ftr");  
+  const footerRoot = footerDoc.documentElement;  
+  footerRoot.setAttribute("xmlns:w", W);  
+  
+  const p = createXmlElement(footerDoc, W, "w:p");  
+  const pPr = createXmlElement(footerDoc, W, "w:pPr");  
+  const jc = createXmlElement(footerDoc, W, "w:jc");  
+  
+  jc.setAttributeNS(W, "w:val", position);  
+  pPr.appendChild(jc);  
+  p.appendChild(pPr);  
+  
+  const r = createXmlElement(footerDoc, W, "w:r");  
+  const begin = createXmlElement(footerDoc, W, "w:fldChar");  
+  begin.setAttributeNS(W, "w:fldCharType", "begin");  
+  
+  const instrRun = createXmlElement(footerDoc, W, "w:r");  
+  const instr = createXmlElement(footerDoc, W, "w:instrText");  
+  instr.setAttribute("xml:space", "preserve");  
+  instr.textContent = " PAGE ";  
+  instrRun.appendChild(instr);  
+  
+  const separateRun = createXmlElement(footerDoc, W, "w:r");  
+  const separate = createXmlElement(footerDoc, W, "w:fldChar");  
+  separate.setAttributeNS(W, "w:fldCharType", "separate");  
+  separateRun.appendChild(separate);  
+  
+  const displayRun = createXmlElement(footerDoc, W, "w:r");  
+  const displayText = createXmlElement(footerDoc, W, "w:t");  
+  displayText.textContent = "1";  
+  displayRun.appendChild(displayText);  
+  
+  const endRun = createXmlElement(footerDoc, W, "w:r");  
+  const end = createXmlElement(footerDoc, W, "w:fldChar");  
+  end.setAttributeNS(W, "w:fldCharType", "end");  
+  endRun.appendChild(end);  
+  
+  p.appendChild(r);  
+  r.appendChild(begin);  
+  p.append(instrRun, separateRun, displayRun, endRun);  
+  footerRoot.appendChild(p);  
+  
+  const serializer = new XMLSerializer();  
+  
+  zip.file(footerPath, serializer.serializeToString(footerDoc));  
+  
+  const rel = createXmlElement(relsXml, R, "Relationship");  
+  rel.setAttribute("Id", relId);  
+  rel.setAttribute(  
+    "Type",  
+    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer"  
+  );  
+  rel.setAttribute("Target", footerFile);  
+  relRoot.appendChild(rel);  
+  
+  const overrideExists = Array.from(typeRoot.children).some(el =>  
+    el.localName === "Override" &&  
+    el.getAttribute("PartName") === "/" + footerPath  
+  );  
+  
+  if (!overrideExists) {  
+    const override = createXmlElement(typesXml, CT, "Override");  
+    override.setAttribute("PartName", "/" + footerPath);  
+    override.setAttribute(  
+      "ContentType",  
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"  
+    );  
+    typeRoot.appendChild(override);  
+  }  
+  
+  const sectPrs = findByLocalName(docRoot, "sectPr");  
+  
+  if (!sectPrs.length) {  
+    throw new Error("ডকুমেন্টের পৃষ্ঠা সেটিংস পাওয়া যায়নি।");  
+  }  
+  
+  for (const sectPr of sectPrs) {  
+    const oldRefs = Array.from(sectPr.children).filter(el =>  
+      el.localName === "footerReference" &&  
+      el.getAttributeNS(  
+        "http://schemas.openxmlformats.org/officeDocument/2006/relationships",  
+        "id"  
+      )  
+    );  
+  
+    oldRefs.forEach(ref => sectPr.removeChild(ref));  
+  
+    const footerRef = createXmlElement(documentXml, W, "w:footerReference");  
+    footerRef.setAttributeNS(W, "w:type", "default");  
+    footerRef.setAttributeNS(  
+      "http://schemas.openxmlformats.org/officeDocument/2006/relationships",  
+      "r:id",  
+      relId  
+    );  
+  
+    sectPr.insertBefore(footerRef, sectPr.firstChild);  
+  }  
+  
+  zip.file(docPath, serializer.serializeToString(documentXml));  
+  zip.file(relsPath, serializer.serializeToString(relsXml));  
+  zip.file(typesPath, serializer.serializeToString(typesXml));  
+  
+  return await zip.generateAsync({  
+    type: "blob",  
+    mimeType:  
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"  
+  });  
+}  
+  
+mergeBtn.addEventListener("click", async () => {  
+  downloadLink.style.display = "none";  
+  
+  if (selectedFiles.length < 2) {  
+    showStatus("কমপক্ষে ২টি DOCX ফাইল নির্বাচন করুন।");  
+    return;  
+  }  
+  
+  if (!window.DocxMerger ||  
+      typeof window.DocxMerger.mergeDocxFromFiles !== "function") {  
+    showStatus(  
+      "DOCX লাইব্রেরি লোড হয়নি। ইন্টারনেট সংযোগ পরীক্ষা করে পৃষ্ঠা রিফ্রেশ করুন।"  
+    );  
+    return;  
+  }  
+  
+  if (typeof JSZip === "undefined") {  
+    showStatus("ZIP লাইব্রেরি লোড হয়নি। ইন্টারনেট সংযোগ পরীক্ষা করুন।");  
+    return;  
+  }  
+  
+  mergeBtn.disabled = true;  
+  showStatus("ফাইলগুলো একত্র করা হচ্ছে। ফাইল বড় হলে কিছুটা সময় লাগতে পারে।");  
+  
+  try {  
+    const files = selectedFiles.slice();  
+  
+    let result = await window.DocxMerger.mergeDocxFromFiles(files, {  
+      insertEnd: true,  
+      pageBreaks: document.getElementById("pageBreaks").checked,  
+      mergeStyles: true,  
+      mergeNumbering: true,  
+      mergeFootnotes: true,  
+      onLog: (message) => {  
+        showStatus(String(message));  
+      }  
+    });  
+  
+    if (document.getElementById("addPageNumbers").checked) {  
+      showStatus("পৃষ্ঠা নম্বর যোগ করা হচ্ছে...");  
+      const position =  
+        document.getElementById("pagePosition").value;  
+      result = await addPageNumbers(result, position);  
+    }  
+  
+    if (downloadUrl) URL.revokeObjectURL(downloadUrl);  
+    downloadUrl = URL.createObjectURL(result);  
+  
+    let filename = document.getElementById("outputName").value.trim();  
+    filename = filename.replace(/[\\/:*?"<>|]/g, "_");  
+    if (!filename) filename = "সংযুক্ত-ডকুমেন্ট";  
+  
+    downloadLink.href = downloadUrl;  
+    downloadLink.download = filename + ".docx";  
+    downloadLink.style.display = "block";  
+  
+    showStatus("কাজ সম্পন্ন হয়েছে। এবার ডাউনলোড বাটনে চাপ দিন।");  
+  } catch (error) {  
+    console.error(error);  
+    showStatus(  
+      "ফাইল তৈরি করা যায়নি। কোনো DOCX ফাইল ক্ষতিগ্রস্ত বা অসামঞ্জস্যপূর্ণ হতে পারে।\n" +  
+      (error && error.message ? error.message : "অজানা সমস্যা")  
+    );  
+  } finally {  
+    mergeBtn.disabled = false;  
+  }  
+});  
+  
+renderFiles();  
+</script>  </body>  
 </html>
